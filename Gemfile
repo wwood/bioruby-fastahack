@@ -3,6 +3,7 @@ source "http://rubygems.org"
 # Example:
 gem "bio", ">= 1.4.2"
 gem 'bio-logger'
+gem 'systemu'
 
 # Add dependencies to develop your gem here.
 # Include everything needed to run rake, tests, features, etc.

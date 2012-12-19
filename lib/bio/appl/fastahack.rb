@@ -1,4 +1,5 @@
 require 'bio'
+require 'systemu'
 
 module Bio
   class Fastahack
@@ -19,27 +20,21 @@ module Bio
       sequences_returned = {}
       unfound_sequences = []
       
-      Bio::Command.call_command_open3(command) do |pin, pout, perr|
-        pin.puts sequence_identifier_list.join("\n")
-        pin.close
-        
-        # Read all the output lines, and error lines
-        errors = perr.readlines
-        unless errors.empty?
-          raise "Error running fastahack: #{errors.join("\n")}"
-        end
-                
-        # For each input sequence_id, assign it unless it has been reported as not found.
-        # They come out in the same order as the IDs went in
-        out_seqs = pout.readlines
-        out_seq_index = 0
-        sequence_identifier_list.each do |seq_id|
-          if sequences_returned[seq_id].nil?
-            sequences_returned[seq_id] = out_seqs[out_seq_index].chomp
-            out_seq_index += 1
-          else
-            log.warn "Found duplicate sequence identifier #{seq_id}, taking the first sequence returned by fastahack."
-          end
+      status, stdout, stderr = systemu command.join(' '), 0=>sequence_identifier_list.join("\n")
+      unless (stderr.nil? or stderr=='') and status.exitstatus==0
+        raise "Error running fastahack (exit status #{status}): #{stderr}"
+      end
+      
+      # For each input sequence_id, assign it unless it has been reported as not found.
+      # They come out in the same order as the IDs went in
+      out_seqs = stdout.split("\n")
+      out_seq_index = 0
+      sequence_identifier_list.each do |seq_id|
+        if sequences_returned[seq_id].nil?
+          sequences_returned[seq_id] = out_seqs[out_seq_index]
+          out_seq_index += 1
+        else
+          log.warn "Found duplicate sequence identifier #{seq_id}, taking the first sequence returned by fastahack."
         end
       end
       
